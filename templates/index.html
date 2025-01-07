@@ -1,0 +1,578 @@
+<!-- <html>
+  <head>
+    <title>Streaming </title>
+  </head>
+  <body>
+    <h1>Streaming </h1>
+    <button id="startButton">Start Webcam</button>
+    <button id="stopButton" disabled>Stop Webcam</button>
+    <img src="{{ url_for('video_feed') }}">
+    <script>
+        $(document).ready(function () {
+            $('#startButton').click(function () {
+                $.post('/start_webcam', function (data) {
+                    if (data.status === "Webcam started") {
+                        $('#videoFeed').attr('src', '/video_feed');
+                        $('#videoFeed').show();
+                        $('#startButton').attr('disabled', true);
+                        $('#stopButton').attr('disabled', false);
+                    }
+                });
+            });
+
+            $('#stopButton').click(function () {
+                $.post('/stop_webcam', function (data) {
+                    if (data.status === "Webcam stopped") {
+                        $('#videoFeed').attr('src', '');
+                        $('#videoFeed').hide();
+                        $('#startButton').attr('disabled', false);
+                        $('#stopButton').attr('disabled', true);
+                    }
+                });
+            });
+        });
+    </script>
+  </body>
+</html> -->
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Feed with YOLO Object Detection</title>
+    <style>
+        #video-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        #video-feed {
+            width: 80%;
+            max-width: 640px;
+        }
+        #info {
+            margin-top: 10px;
+            font-size: 18px;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Webcam Control</h1>
+    <button id="startButton">Start Webcam</button>
+    <button id="stopButton" disabled>Stop Webcam</button>
+    <div>
+        <img id="videoFeed" src="" alt="Video feed will appear here" style="display: none;">
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            // Start Webcam
+            $('#startButton').click(function () {
+                $.post('/start_webcam', function (data) {
+                    if (data.status === "Webcam started") {
+                        $('#videoFeed').attr('src', '/video_feed');
+                        $('#videoFeed').show();
+                        $('#startButton').attr('disabled', true);
+                        $('#stopButton').attr('disabled', false);
+                    } else {
+                        alert(data.status);
+                    }
+                }).fail(function () {
+                    alert("Failed to start webcam.");
+                });
+            });
+
+            // Stop Webcam
+            $('#stopButton').click(function () {
+                $.post('/stop_webcam', function (data) {
+                    if (data.status === "Webcam stopped") {
+                        $('#videoFeed').attr('src', '');
+                        $('#videoFeed').hide();
+                        $('#startButton').attr('disabled', false);
+                        $('#stopButton').attr('disabled', true);
+                    } else {
+                        alert(data.status);
+                    }
+                }).fail(function () {
+                    alert("Failed to stop webcam.");
+                });
+            });
+        });
+    </script>
+</body>
+</html> -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Feed with YOLO Object Detection</title>
+    <style>
+        #video-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        #video-feed {
+            width: 80%;
+            max-width: 640px;
+        }
+        #info {
+            margin-top: 10px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Webcam Feed with YOLOv8 Object Detection</h1>
+    <div id="video-container">
+        <img id="video-feed" src="{{ url_for('video_feed') }}" />
+    </div>
+    <div id="info">
+        <div>People Count: <span id="people-count">0</span> / Max Count: <span id="max-count">0</span></div>
+        <div>Time Elapsed: <span id="time-elapsed">0</span> seconds</div>
+    </div>
+    <div>
+        <button onclick="startWebcam()">Start Webcam</button>
+        <button onclick="stopWebcam()">Stop Webcam</button>
+    </div>
+
+    <script>
+        let webcamActive = false;
+        let maxCount = 0;  // Maximum count (e.g., people detected)
+        let timeElapsed = 0;  // Time in seconds
+        let interval;
+
+        // Start webcam
+        function startWebcam() {
+            if (!webcamActive) {
+                fetch('/start_webcam', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'Webcam started') {
+                            webcamActive = true;
+                            startTimer();
+                        }
+                    });
+            }
+        }
+
+        // Stop webcam
+        function stopWebcam() {
+            if (webcamActive) {
+                fetch('/stop_webcam', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'Webcam stopped') {
+                            webcamActive = false;
+                            clearInterval(interval);
+                        }
+                    });
+            }
+        }
+
+        // Update people count and elapsed time from the server
+        function updateInfo(count, time) {
+            document.getElementById("people-count").textContent = count;
+            document.getElementById("max-count").textContent = maxCount;
+            document.getElementById("time-elapsed").textContent = time;
+        }
+
+        // Start a timer to track elapsed time
+        function startTimer() {
+            interval = setInterval(() => {
+                timeElapsed++;
+                updateInfo(maxCount, timeElapsed);
+            }, 1000);
+        }
+
+        // WebSocket or polling for real-time object count updates
+        setInterval(() => {
+            // Poll the backend for the current object count (or send via WebSocket)
+            if (webcamActive) {
+                fetch('/get_current_count')
+                    .then(response => response.json())
+                    .then(data => {
+                        maxCount = data.max_count;
+                        updateInfo(data.current_count, timeElapsed);
+                    });
+            }
+        }, 1000);  // Update every second
+
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Feed with YOLO Object Detection</title>
+    <style>
+        #video-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        #video-feed {
+            width: 80%;
+            max-width: 640px;
+        }
+        #info {
+            margin-top: 10px;
+            font-size: 18px;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Webcam Control</h1>
+    <button id="startButton">Start Webcam</button>
+    <button id="stopButton" disabled>Stop Webcam</button>
+    <div>
+        <img id="videoFeed" src="" alt="Video feed will appear here" style="display: none;">
+    </div>
+
+    <script>
+        let webcamActive = false;
+        let maxCount = 0;  // Maximum count (e.g., people detected)
+        let timeElapsed = 0;  // Time in seconds
+        let interval;
+
+        // Start webcam
+        function startWebcam() {
+            if (!webcamActive) {
+                fetch('/start_webcam', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'Webcam started') {
+                            webcamActive = true;
+                            startTimer();
+                        }
+                    });
+            }
+        }
+
+        // Stop webcam
+        function stopWebcam() {
+            if (webcamActive) {
+                fetch('/stop_webcam', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'Webcam stopped') {
+                            webcamActive = false;
+                            clearInterval(interval);
+                        }
+                    });
+            }
+        }
+
+        // Update people count and elapsed time from the server
+        function updateInfo(count, time) {
+            document.getElementById("people-count").textContent = count;
+            document.getElementById("max-count").textContent = maxCount;
+            document.getElementById("time-elapsed").textContent = time;
+        }
+
+        // Start a timer to track elapsed time
+        function startTimer() {
+            interval = setInterval(() => {
+                timeElapsed++;
+                updateInfo(maxCount, timeElapsed);
+            }, 1000);
+        }
+
+        // WebSocket or polling for real-time object count updates
+        setInterval(() => {
+            // Poll the backend for the current object count (or send via WebSocket)
+            if (webcamActive) {
+                fetch('/get_current_count')
+                    .then(response => response.json())
+                    .then(data => {
+                        maxCount = data.max_count;
+                        updateInfo(data.current_count, timeElapsed);
+                    });
+            }
+        }, 1000);  // Update every second
+
+    </script>
+</body>
+</html> -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Feed with YOLO Object Detection</title>
+</head>
+<body>
+    <h1>Webcam Feed with YOLOv8 Object Detection</h1>
+    <div>
+        <img id="videoFeed" src="" alt="Video feed will appear here" style="display: none;">
+    </div>
+    <div>
+        <button onclick="startWebcam()">Start Webcam</button>
+        <button onclick="stopWebcam()">Stop Webcam</button>
+    </div>
+    <div id="info">
+        <div>People Count: <span id="people-count">0</span></div>
+        <div>Max Count: <span id="max-count">0</span></div>
+    </div>
+
+    <script>
+        let webcamActive = false;
+        let currentCount = 0;
+        let maxCount = 0;
+
+        // Start webcam
+        function startWebcam() {
+            if (!webcamActive) {
+                fetch('/start_webcam', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'Webcam started') {
+                            webcamActive = true;
+                        }
+                    });
+            }
+        }
+
+        // Stop webcam
+        function stopWebcam() {
+            if (webcamActive) {
+                fetch('/stop_webcam', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'Webcam stopped') {
+                            webcamActive = false;
+                        }
+                    });
+            }
+        }
+
+        // Update current count and max count
+        setInterval(() => {
+            fetch('/get_current_count')
+                .then(response => response.json())
+                .then(data => {
+                    currentCount = data.current_count;
+                    maxCount = data.max_count;
+                    document.getElementById("people-count").textContent = currentCount;
+                    document.getElementById("max-count").textContent = maxCount;
+                });
+        }, 1000);
+    </script>
+</body>
+</html> -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Feed with YOLO Object Detection</title>
+    <style>
+        #video-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        #video-feed {
+            width: 80%;
+            max-width: 640px;
+        }
+        #info {
+            margin-top: 10px;
+            font-size: 18px;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Webcam Control</h1>
+    <button id="startButton">Start Webcam</button>
+    <button id="stopButton" disabled>Stop Webcam</button>
+    <div>
+        <img id="videoFeed" src="" alt="Video feed will appear here" style="display: none;">
+    </div>
+
+    <script>
+        let webcamActive = false;
+        let maxCount = 0;  // Maximum count (e.g., people detected)
+        let currentCount = 0;  // Current count (e.g., people detected)
+        let timeElapsed = 0;  // Time in seconds
+        let interval;
+    
+        // Start webcam
+        function startWebcam() {
+            if (!webcamActive) {
+                fetch('/start_webcam', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'Webcam started') {
+                            webcamActive = true;
+                            document.getElementById('videoFeed').style.display = 'block';  // Show video feed
+                            startTimer();
+                        }
+                    });
+            }
+        }
+    
+        // Stop webcam
+        function stopWebcam() {
+            if (webcamActive) {
+                fetch('/stop_webcam', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'Webcam stopped') {
+                            webcamActive = false;
+                            document.getElementById('videoFeed').style.display = 'none';  // Hide video feed
+                            clearInterval(interval);
+                        }
+                    });
+            }
+        }
+    
+        // Update people count and elapsed time from the server
+        function updateInfo(currentCount, maxCount, time) {
+            document.getElementById("people-count").textContent = currentCount;
+            document.getElementById("max-count").textContent = maxCount;
+            document.getElementById("time-elapsed").textContent = time;
+        }
+    
+        // Start a timer to track elapsed time
+        function startTimer() {
+            interval = setInterval(() => {
+                timeElapsed++;
+                updateInfo(currentCount, maxCount, timeElapsed);
+            }, 1000);
+        }
+    
+        // Polling for real-time object count updates
+        setInterval(() => {
+            // Poll the backend for the current object count (or send via WebSocket)
+            if (webcamActive) {
+                fetch('/get_current_count')
+                    .then(response => response.json())
+                    .then(data => {
+                        currentCount = data.current_count;
+                        maxCount = data.max_count;
+                        updateInfo(currentCount, maxCount, timeElapsed);
+                    });
+            }
+        }, 1000);  // Update every second
+    </script>
+</body>
+</html> -->
